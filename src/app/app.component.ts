@@ -51,21 +51,18 @@ export class AppComponent {
   onPointerMove(event: PointerEvent) {
     const canvas = this.drawCanvas()?.nativeElement
     
-    if (!this.isDrawing() || !this.lastPoint || !this.ctx || !canvas) return;
+    if (!this.isDrawing() || !this.lastPoint || !canvas) return;
 
     // Track where our pointer is now
     const current = this.getCanvasPoint(canvas, event)
     if (!current) return;
     
-    this.ctx.lineWidth = 2
-    this.ctx.beginPath()
-    this.ctx.moveTo(this.lastPoint.x, this.lastPoint.y) // move to our last point
-    this.ctx.lineTo(current.x, current.y) // draw to our current point
-    this.ctx.stroke()
-
-    this.lastPoint = current; // now the new becomes old for the next event
 
     this.currentStroke?.push(current) // record what was just drawn
+
+    this.redrawAll()
+
+    this.renderStroke(this.currentStroke)
   }
 
   // pointerup 
@@ -79,11 +76,14 @@ export class AppComponent {
     }
 
     this.currentStroke = null
+    localStorage.setItem('strokes', JSON.stringify(this.strokes))
   }
   
     
 
   ngAfterViewInit(): void {
+    this.restoreStrokes()
+    
     const canvas = this.drawCanvas()?.nativeElement
     if (!canvas) return;
 
@@ -138,11 +138,13 @@ export class AppComponent {
 
   undo() {
     this.strokes.pop()
+    localStorage.setItem('strokes', JSON.stringify(this.strokes))
     this.redrawAll()
   }
 
   clear() {
     this.strokes = []
+    localStorage.removeItem('strokes')
     this.redrawAll()
   }
 
@@ -156,27 +158,58 @@ export class AppComponent {
     return {x, y}
   }
 
-  //Clears canvas and re-draws all strokes
+  // Clears canvas and re-draws all strokes
   redrawAll() {
     const c = this.drawCanvas()?.nativeElement
     if (!c) return;
     
     console.log("Redrawing.....")
     // Clear canvas and redraw
+
+    if (!this.ctx) return;
     this.ctx?.clearRect(0, 0, c.width / this.dpr, c.height / this.dpr)
+    this.ctx.lineWidth = 2
     
     this.strokes.forEach((s) => {
-      if (s.length < 2) return; // skip strokes with less than 2 points
-      
-      this.ctx?.beginPath()
-      this.ctx?.moveTo(s[0].x, s[0].y)
-
-      for (let i = 1; i < s.length; i++){
-        this.ctx?.lineTo(s[i].x, s[i].y)   
-      }
-
-      this.ctx?.stroke()
+      this.renderStroke(s)
     })
   }
+
+
+  renderStroke(s: Point[] | null) {
+    if (!this.ctx || !s) return;
+    if (s.length < 2) return; // skip strokes with less than 2 points
+    
+    this.ctx.beginPath()
+    this.ctx.moveTo(s[0].x, s[0].y)
+
+    // Smoothening curves so the drawing feels much more natural (we're eliminating
+    // polygon-type edges here)
+    for (let i = 1; i < s.length - 1; i++){
+      let midX = (s[i].x + s[i+1].x) / 2
+      let midY = (s[i].y + s[i + 1].y) / 2
+      this.ctx.quadraticCurveTo(s[i].x, s[i].y, midX, midY)
+    }
+    
+    this.ctx.lineTo(s[s.length - 1].x, s[s.length - 1].y)   
+    this.ctx.stroke()
+  }
+
+  // Restore strokes (if any) from localStorage
+  restoreStrokes() {
+    const s = localStorage.getItem('strokes')
+    if (!s) return;
+    try {
+      this.strokes = JSON.parse(s)
+      
+    } catch (err) {
+      console.error("Unable to parse strokes from localStorage: ", err)
+    }
+  }
+
+
+
+
+
 
 }
