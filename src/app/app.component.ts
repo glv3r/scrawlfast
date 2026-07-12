@@ -28,7 +28,7 @@ export class AppComponent {
   currentStroke: Point[] | null = null
 
   strokeWidth = signal<number>(2)
-  strokeColor = signal<string>("#000")
+  strokeColor = signal<string>("#1F1E1B")
   rotationAngle = signal<number>(0)
 
   swatches = ["#1F1E1B", "#2743B8", "#8E2A22"]
@@ -92,7 +92,7 @@ export class AppComponent {
 
     this.redrawAll()
 
-    this.renderStroke(this.currentStroke)
+    this.renderStroke(this.currentStroke, this.ctx)
   }
 
   // pointerup 
@@ -226,30 +226,30 @@ export class AppComponent {
     }
     
     this.strokes.forEach((s) => {
-      this.renderStroke(s)
+      this.renderStroke(s, this.ctx)
     })
 
     this.ctx.restore()
   }
 
 
-  renderStroke(s: Point[] | null) {
-    if (!this.ctx || !s) return;
+  renderStroke(s: Point[] | null, ctx: CanvasRenderingContext2D | null) {
+    if (!ctx || !s) return;
     if (s.length < 2) return; // skip strokes with less than 2 points
     
-    this.ctx.beginPath()
-    this.ctx.moveTo(s[0].x, s[0].y)
+    ctx.beginPath()
+    ctx.moveTo(s[0].x, s[0].y)
 
     // Smoothening curves so the drawing feels much more natural (we're eliminating
     // polygon-type edges here)
     for (let i = 1; i < s.length - 1; i++){
       let midX = (s[i].x + s[i+1].x) / 2
       let midY = (s[i].y + s[i + 1].y) / 2
-      this.ctx.quadraticCurveTo(s[i].x, s[i].y, midX, midY)
+      ctx.quadraticCurveTo(s[i].x, s[i].y, midX, midY)
     }
     
-    this.ctx.lineTo(s[s.length - 1].x, s[s.length - 1].y)   
-    this.ctx.stroke()
+    ctx.lineTo(s[s.length - 1].x, s[s.length - 1].y)   
+    ctx.stroke()
   }
 
   // Restore strokes (if any) from localStorage
@@ -269,7 +269,58 @@ export class AppComponent {
     }
   }
 
+  exportPNG() {
+    const bbox = this.getRotatedBoundingBox()
 
+    if (!bbox) return;
+
+    const padding = 16
+    const scale = 3
+
+    let w = (bbox.maxX - bbox.minX + 2 * padding)
+    let h = (bbox.maxY - bbox.minY + 2 * padding)
+
+    let off = document.createElement('canvas')
+    off.width = w * scale
+    off.height = h * scale
+    
+    let octx = off.getContext('2d')
+
+    if (!octx) return;
+
+    octx.scale(scale, scale)
+    octx.translate(-bbox.minX + padding, -bbox.minY + padding)
+
+    octx.lineWidth = this.strokeWidth()
+    octx.strokeStyle = this.strokeColor()
+    octx.lineCap = 'round'
+    octx.lineJoin = 'round'
+
+    const c = this.getBoundingBox()
+    
+    if (this.rotationAngle() !== 0 && c) {
+      let cx = (c.minX + c.maxX) / 2
+      let cy = (c.minY + c.maxY) / 2
+      octx.translate(cx, cy);
+      octx.rotate(this.rotationAngle() * Math.PI / 180)
+      octx.translate(-cx, -cy)
+    }
+    
+    this.strokes.forEach((s) => {
+      this.renderStroke(s, octx)
+    })
+
+
+    off.toBlob(blob => {
+      if (!blob) return;
+      let url = URL.createObjectURL(blob)
+      let a = document.createElement('a');
+      a.href = url;
+      a.download = 'signature.png'
+      a.click()
+      URL.revokeObjectURL(url)
+    }, 'image/png')
+  }
 
 
   // ----------- Helper functions ---------------
@@ -287,6 +338,45 @@ export class AppComponent {
         minY = Math.min(minY, p.y);
         maxX = Math.max(maxX, p.x);
         maxY = Math.max(maxY, p.y);
+      }
+    }
+  
+    return { minX, minY, maxX, maxY };
+  }
+
+
+  rotatePoint(px: number, py: number, cx: number, cy: number, angleDeg: number): { x: number, y: number } {
+    const rad = angleDeg * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const dx = px - cx;
+    const dy = py - cy;
+    return {
+      x: cx + dx * cos - dy * sin,
+      y: cy + dx * sin + dy * cos
+    };
+  }
+  
+  getRotatedBoundingBox(): { minX: number, minY: number, maxX: number, maxY: number } | null {
+    const bbox = this.getBoundingBox();
+    if (!bbox) return null;
+  
+    const angle = this.rotationAngle();
+    if (angle === 0) return bbox;          // fast path, unchanged
+  
+    const cx = (bbox.minX + bbox.maxX) / 2;
+    const cy = (bbox.minY + bbox.maxY) / 2;
+  
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+  
+    for (const stroke of this.strokes) {
+      for (const p of stroke) {
+        const r = this.rotatePoint(p.x, p.y, cx, cy, angle);
+        minX = Math.min(minX, r.x);
+        minY = Math.min(minY, r.y);
+        maxX = Math.max(maxX, r.x);
+        maxY = Math.max(maxY, r.y);
       }
     }
   

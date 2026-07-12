@@ -4,7 +4,7 @@
 html,
 body {
   max-width: 100% !important;
-  height: 100vh;
+  height: 100dvh;
   overflow-x: hidden;
   scroll-behavior: smooth;
   font-family: var(--font-primary), sans-serif;

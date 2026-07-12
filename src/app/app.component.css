@@ -36,8 +36,10 @@ input[type="range"]::-webkit-slider-thumb {
   height: 20px;
   background: transparent;
   border: none;
-  margin-top: 0;
+  box-shadow: none;     /* iOS default thumb shadow */
+  outline: none;
 }
+
 input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
