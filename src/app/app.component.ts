@@ -1,19 +1,31 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, NgZone, inject, signal, viewChild, effect, computed } from '@angular/core';
+import { ToastService } from './services/toast.service';
+import { ToastComponent } from './components/toast/toast.component';
 
 type Point = {
   x: number,
   y: number
 }
 
+type Toast = {
+  header: string;
+  message: string;
+};
+
 @Component({
   selector: 'app-root',
-  imports: [CommonModule],
+  imports: [CommonModule, ToastComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
 export class AppComponent {
   title = 'signing-tool';
+  
+  toastMessage: string = '';
+  toastHeader: string = '';
+  toastService = inject(ToastService)
+  
   observer: ResizeObserver | null = null;
   zone = inject(NgZone)
   isDrawing = signal(false);
@@ -115,7 +127,19 @@ export class AppComponent {
     
     localStorage.setItem('stroke-payload', JSON.stringify(payload))
   }
-  
+
+
+  ngOnInit(): void {
+    this.toastService.toast$.subscribe((toast: Toast) => {
+      this.toastMessage = `${toast.message}`;
+      this.toastHeader = `${toast.header}`;
+      // Automatically hide the snackbar after 5 seconds
+      setTimeout(() => {
+        // this.animateOut();
+        (this.toastHeader = ''), (this.toastMessage = '');
+      }, 3500);
+    });
+  }
     
 
   ngAfterViewInit(): void {
@@ -269,57 +293,47 @@ export class AppComponent {
     }
   }
 
-  exportPNG() {
-    const bbox = this.getRotatedBoundingBox()
+  async exportPNG() {
+    const blob = await this.renderToBlob();
 
-    if (!bbox) return;
+    if (!blob) return;
 
-    const padding = 16
-    const scale = 3
+    let url = URL.createObjectURL(blob)
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'signature.png'
+    a.click()
+    URL.revokeObjectURL(url)
+    this.toastService.showToast(
+      "Saved",
+      'Check your downloads. Transparent PNG, ready to drop in.'
+    );
+  }
 
-    let w = (bbox.maxX - bbox.minX + 2 * padding)
-    let h = (bbox.maxY - bbox.minY + 2 * padding)
-
-    let off = document.createElement('canvas')
-    off.width = w * scale
-    off.height = h * scale
+  copyPNG() {
+    // deliberately not async — clipboard.write must fire within 
+    // the click gesture (Safari); the blob promise is resolved by 
+    // the browser, not us
+    const blobPromise = this.renderToBlob().then(blob => {
+      if (!blob) throw new Error('Nothing to copy');
+      return blob;
+    });
     
-    let octx = off.getContext('2d')
-
-    if (!octx) return;
-
-    octx.scale(scale, scale)
-    octx.translate(-bbox.minX + padding, -bbox.minY + padding)
-
-    octx.lineWidth = this.strokeWidth()
-    octx.strokeStyle = this.strokeColor()
-    octx.lineCap = 'round'
-    octx.lineJoin = 'round'
-
-    const c = this.getBoundingBox()
-    
-    if (this.rotationAngle() !== 0 && c) {
-      let cx = (c.minX + c.maxX) / 2
-      let cy = (c.minY + c.maxY) / 2
-      octx.translate(cx, cy);
-      octx.rotate(this.rotationAngle() * Math.PI / 180)
-      octx.translate(-cx, -cy)
-    }
-    
-    this.strokes.forEach((s) => {
-      this.renderStroke(s, octx)
-    })
-
-
-    off.toBlob(blob => {
-      if (!blob) return;
-      let url = URL.createObjectURL(blob)
-      let a = document.createElement('a');
-      a.href = url;
-      a.download = 'signature.png'
-      a.click()
-      URL.revokeObjectURL(url)
-    }, 'image/png')
+    const item = new ClipboardItem({ 'image/png': blobPromise });
+    navigator.clipboard.write([item])
+      .then(() => {
+        this.toastService.showToast(
+          'Copied',
+          'Your signature is on the clipboard. Paste it anywhere.'
+        );
+      })
+      .catch(() => {
+        this.toastService.showToast(
+          "Couldn't copy",
+          'Your browser blocked it. Try downloading instead if this persists.'
+        );
+        console.log('Error copying signature. Consider downloading instead if this persists.')
+      });
   }
 
 
@@ -383,6 +397,51 @@ export class AppComponent {
     return { minX, minY, maxX, maxY };
   }
 
+  async renderToBlob(): Promise<Blob | null> {
+    const bbox = this.getRotatedBoundingBox()
+
+    if (!bbox) return null;
+
+    const padding = 16
+    const scale = 3
+
+    let w = (bbox.maxX - bbox.minX + 2 * padding)
+    let h = (bbox.maxY - bbox.minY + 2 * padding)
+
+    let off = document.createElement('canvas')
+    off.width = w * scale
+    off.height = h * scale
+    
+    let octx = off.getContext('2d')
+
+    if (!octx) return null;
+
+    octx.scale(scale, scale)
+    octx.translate(-bbox.minX + padding, -bbox.minY + padding)
+
+    octx.lineWidth = this.strokeWidth()
+    octx.strokeStyle = this.strokeColor()
+    octx.lineCap = 'round'
+    octx.lineJoin = 'round'
+
+    const c = this.getBoundingBox()
+    
+    if (this.rotationAngle() !== 0 && c) {
+      let cx = (c.minX + c.maxX) / 2
+      let cy = (c.minY + c.maxY) / 2
+      octx.translate(cx, cy);
+      octx.rotate(this.rotationAngle() * Math.PI / 180)
+      octx.translate(-cx, -cy)
+    }
+    
+    this.strokes.forEach((s) => {
+      this.renderStroke(s, octx)
+    })
+    
+    return new Promise<Blob | null>(resolve =>
+        off.toBlob(resolve, 'image/png')
+    );
+  }
 
 
 }

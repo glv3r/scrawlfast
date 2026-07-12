@@ -80,7 +80,7 @@ body {
   /* Base */
   .btn {
     @apply inline-flex font-primary items-center justify-center gap-2 rounded-2xl font-medium
-    transition-colors disabled:cursor-not-allowed
+    transition-colors cursor-pointer disabled:cursor-not-allowed
     focus-visible:outline-none focus-visible:ring-4;
   }
 

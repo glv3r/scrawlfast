@@ -5,7 +5,7 @@
     <span class="font-secondary font-semibold text-lg lg:text-2xl">Scrawlfast.</span>
 
     <div class="flex items-center gap-3">
-      <button class="btn btn-sm lg:btn-lg btn-primary">Copy</button>
+      <button (click)="copyPNG()" class="btn btn-sm lg:btn-lg btn-primary">Copy</button>
       <button (click)="exportPNG()" class="btn btn-sm lg:btn-lg btn-secondary">
         <span class="hidden sm:inline">Download PNG</span>
         <span class="sm:hidden">Save PNG</span>
@@ -62,3 +62,11 @@
   </div>
   
 </section>
+
+
+<app-toast
+  id="toast"
+  class="flex items-center justify-center lg:justify-end"
+  [header]="toastHeader"
+  [message]="toastMessage"
+></app-toast>

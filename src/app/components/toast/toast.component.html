@@ -1,0 +1,8 @@
+@if (message && header) {
+    <div class="toast flex shadow-lg flex-row items-center justify-between rounded-lg fixed top-4 z-100000 lg:top-auto lg:bottom-8 lg:gap-20 lg:right-8 right-4 w-[90%] lg:w-fit bg-white px-4 py-3 border border-[#8A8375]">
+        <div class="flex flex-col items-start">
+            <span class="font-primary font-semibold text-sm lg:text-base flex shrink-0">{{ header }}</span>
+            <span class="font-primary text-sm text-[#8A8375] flex shrink-0">{{ message }}</span>
+        </div>
+    </div>
+}
