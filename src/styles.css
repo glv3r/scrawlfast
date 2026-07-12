@@ -1,5 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&display=swap');
 @import "tailwindcss";
-
 /* You can add global styles to this file, and also import other style files */
 html,
 body {
@@ -10,4 +10,142 @@ body {
   font-family: var(--font-primary), sans-serif;
   font-optical-sizing: auto;
   background-color: var(--color-white);
+}
+
+@theme {
+
+  /* COLORS */
+  --color-brand-purple: #896FDB;
+  --color-blue-deep: #0E4A66;
+  --color-brand-green: #7DB93C;
+  --color-green-deep: #2C4A0E;
+  --color-cream: #FAF6EE;
+  --color-ink: #0F1A24;
+
+  /* Error color variants */
+  --color-error-50: #FEF3F2;
+  --color-error-100: #FEE4E2;
+  --color-error-300: #FDA29B;
+  --color-error-500: #F04438;
+  --color-error-700: #B42318;
+
+  /* Warning color variants */
+  --color-warning-50: #FFFAEB;
+  --color-warning-100: #FEF0C7;
+  --color-warning-500: #F79009;
+  --color-warning-700: #B54708;
+
+  /* Success color variants */
+  --color-success-50: #ECFDF3;
+  --color-success-100: #D1FADF;
+  --color-success-500: #12B76A;
+  --color-success-700: #027A48;
+
+
+  /* FONTS */
+  --font-primary: "Lato";
+  --font-secondary: "Source Serif 4";
+
+  /* SHADOWS */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(16, 24, 40, 0.10), 0 1px 2px 0 rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.10), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
+  --shadow-xl: 0 20px 24px -4px rgba(16, 24, 40, 0.08), 0 8px 8px -4px rgba(16, 24, 40, 0.03);
+  --shadow-2xl: 0 24px 48px -12px rgba(16, 24, 40, 0.18);
+  --shadow-3xl: 0 32px 64px -12px rgba(16, 24, 40, 0.14);
+
+  /* SCREEN BREAKPOINTS */
+  --breakpoint-xs: 375px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1440px;
+  --breakpoint-3xl: 1650px;
+}
+
+
+
+@layer components {
+  /* 4px focus rings */
+  .focus-ring-primary-100:focus-visible { @apply outline-none ring-4 ring-brand-purple; }
+  .focus-ring-primary-600:focus-visible { @apply outline-none ring-4 ring-brand-purple; }
+  .focus-ring-gray-100:focus-visible    { @apply outline-none ring-4 ring-gray-100; }
+  .focus-ring-gray-600:focus-visible    { @apply outline-none ring-4 ring-gray-600; }
+  .focus-ring-error-100:focus-visible   { @apply outline-none ring-4 ring-error-100; }
+}
+
+@layer components {
+  /* Base */
+  .btn {
+    @apply inline-flex font-primary items-center justify-center gap-2 rounded-2xl font-medium
+    transition-colors disabled:cursor-not-allowed
+    focus-visible:outline-none focus-visible:ring-4;
+  }
+
+  /* Sizes */
+  .btn-sm { @apply px-3.5 py-2 text-sm; }
+  .btn-md { @apply px-4 py-2.5 text-sm; }
+  .btn-lg { @apply px-4.5 py-2.5 text-base; }
+  .btn-xl { @apply px-5 py-3 text-base; }
+  .btn-2xl { @apply px-7 py-4 text-lg; }
+
+  /* Variants (hierarchies) */
+  .btn-primary {
+    @apply bg-brand-purple shadow-xs text-white hover:bg-brand-purple disabled:bg-brand-purple/10
+    focus-visible:ring-brand-purple;
+  }
+  .btn-secondary {
+    @apply bg-brand-purple/10 shadow-xs text-black disabled:bg-brand-purple/25 disabled:text-brand-purple/300
+    focus-visible:ring-brand-purple/10;
+   }
+
+  /*.btn-secondary-gray {*/
+  /*  @apply bg-white shadow-xs text-gray-700 border border-gray-300 hover:bg-gray-50 hover:text-gray-800 disabled:bg-white disabled:border-gray-200 disabled:text-gray-300*/
+  /*  focus-visible:ring-gray-100;*/
+  /*}*/
+
+  /*.btn-tertiary {*/
+  /*  @apply bg-transparent text-brand-700 hover:bg-brand-50 disabled:text-gray-300;*/
+  /*}*/
+
+  /*.btn-tertiary-gray {*/
+  /*  @apply bg-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-700 disabled:text-gray-300;*/
+  /*}*/
+
+  /*.btn-link-color {*/
+  /*  @apply p-0! bg-transparent text-brand-700 hover:text-brand-800 disabled:text-gray-300;*/
+  /*}*/
+
+  /*.btn-link-gray {*/
+  /*  @apply p-0! bg-transparent text-gray-600 hover:text-gray-700 disabled:text-gray-300;*/
+  /*}*/
+
+  .btn-destructive {
+    @apply bg-error-300 text-white hover:bg-error-700 disabled:bg-error-100
+    focus-visible:ring-error-100;
+  }
+
+  /* State helpers */
+  .btn-loading { @apply pointer-events-none opacity-60; }
+}
+
+/* Global styles (e.g., styles.css) */
+.mask-fade-b {
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+}
+.mask-fade-t {
+  -webkit-mask-image: linear-gradient(to top, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 70%, transparent 100%);
+}
+.mask-fade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 20%, #000 80%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 20%, #000 80%, transparent 100%);
+}
+
+@layer components {
+  [card-title] { @apply text-gray-900 font-semibold leading-none; }
+  [card-description] { @apply text-gray-600 text-sm; }
 }

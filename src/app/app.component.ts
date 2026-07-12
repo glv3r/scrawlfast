@@ -1,5 +1,5 @@
-import { Component, ElementRef, NgZone, inject, signal, viewChild } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { Component, ElementRef, NgZone, inject, signal, viewChild, effect, computed } from '@angular/core';
 
 type Point = {
   x: number,
@@ -8,7 +8,7 @@ type Point = {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [CommonModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -27,6 +27,36 @@ export class AppComponent {
   strokes: Point[][] = []
   currentStroke: Point[] | null = null
 
+  strokeWidth = signal<number>(2)
+  strokeColor = signal<string>("#000")
+  rotationAngle = signal<number>(0)
+
+  swatches = ["#1F1E1B", "#2743B8", "#8E2A22"]
+
+  fillPercent = computed(() => {
+    const min = 1, max = 12;
+    return `${((this.strokeWidth() - min) / (max - min)) * 100}%`;
+  });
+
+  rotationPercent = computed(() => {
+    const min = -20, max = 20;
+    return `${((this.rotationAngle() - min) / (max - min)) * 100}%`;
+  })
+
+  selectColor(c: string) {
+    this.strokeColor.set(c)
+  }
+
+  constructor() {
+    effect(() => {
+      // Explicitly call the deps at the top so they're not hidden
+      // from the early return in the redrawAll method
+      this.strokeWidth();
+      this.strokeColor();
+      this.rotationAngle();
+      this.redrawAll()
+    });
+  }
 
   // --------- Event Listeners ------------
   
@@ -76,7 +106,14 @@ export class AppComponent {
     }
 
     this.currentStroke = null
-    localStorage.setItem('strokes', JSON.stringify(this.strokes))
+    const payload = {
+      "strokes": this.strokes,
+      "angle": this.rotationAngle(),
+      "strokeWidth": this.strokeWidth(),
+      "ink": this.strokeColor()
+    }
+    
+    localStorage.setItem('stroke-payload', JSON.stringify(payload))
   }
   
     
@@ -138,13 +175,19 @@ export class AppComponent {
 
   undo() {
     this.strokes.pop()
-    localStorage.setItem('strokes', JSON.stringify(this.strokes))
+    const payload = {
+      "strokes": this.strokes,
+      "angle": this.rotationAngle(),
+      "strokeWidth": this.strokeWidth(),
+      "ink": this.strokeColor()
+    }
+    localStorage.setItem('stroke-payload', JSON.stringify(payload))
     this.redrawAll()
   }
 
   clear() {
     this.strokes = []
-    localStorage.removeItem('strokes')
+    localStorage.removeItem('stroke-payload')
     this.redrawAll()
   }
 
@@ -168,11 +211,25 @@ export class AppComponent {
 
     if (!this.ctx) return;
     this.ctx?.clearRect(0, 0, c.width / this.dpr, c.height / this.dpr)
-    this.ctx.lineWidth = 2
+    this.ctx.lineWidth = this.strokeWidth()
+    this.ctx.strokeStyle = this.strokeColor()
+
+    this.ctx.save()
+
+    const bbox = this.getBoundingBox()
+    if (this.rotationAngle() !== 0 && bbox) {
+      let cx = (bbox.minX + bbox.maxX) / 2
+      let cy = (bbox.minY + bbox.maxY) / 2
+      this.ctx.translate(cx, cy)
+      this.ctx.rotate(this.rotationAngle() * Math.PI / 180)
+      this.ctx.translate(-cx, -cy)
+    }
     
     this.strokes.forEach((s) => {
       this.renderStroke(s)
     })
+
+    this.ctx.restore()
   }
 
 
@@ -197,10 +254,15 @@ export class AppComponent {
 
   // Restore strokes (if any) from localStorage
   restoreStrokes() {
-    const s = localStorage.getItem('strokes')
+    const s = localStorage.getItem('stroke-payload')
     if (!s) return;
     try {
-      this.strokes = JSON.parse(s)
+      let sParsed = JSON.parse(s)
+      this.strokes = sParsed.strokes
+      this.strokeWidth.set(sParsed.strokeWidth)
+      this.rotationAngle.set(sParsed.angle)
+      this.strokeColor.set(sParsed.ink)
+      console.log("parsed: ", sParsed)
       
     } catch (err) {
       console.error("Unable to parse strokes from localStorage: ", err)
@@ -209,6 +271,27 @@ export class AppComponent {
 
 
 
+
+  // ----------- Helper functions ---------------
+
+
+  getBoundingBox(): { minX: number, minY: number, maxX: number, maxY: number } | null {
+    if (this.strokes.length === 0) return null;
+  
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+  
+    for (const stroke of this.strokes) {
+      for (const p of stroke) {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+      }
+    }
+  
+    return { minX, minY, maxX, maxY };
+  }
 
 
 

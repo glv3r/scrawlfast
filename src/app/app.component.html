@@ -1,8 +1,64 @@
-<section class="w-full h-screen flex flex-col items-center justify-center">
+<section class="w-full h-dvh flex flex-col items-center relative justify-center">
 
-  <button (click)="undo()">Undo</button>
-  <button (click)="clear()">Clear</button>
+
+  <div class="top-nav flex items-center justify-between absolute z-50 top-0 w-full p-7">
+    <span class="font-secondary font-medium text-lg lg:text-2xl">Scrawlfast.</span>
+
+    <div class="flex items-center gap-3">
+      <button class="btn btn-sm lg:btn-lg btn-primary">Copy</button>
+      <button class="btn btn-sm lg:btn-lg btn-secondary">
+        <span class="hidden sm:inline">Download PNG</span>
+        <span class="sm:hidden">Save PNG</span>
+      </button>
+    </div>
+  </div>
   
-  <canvas class="drawing-canvas w-full h-[60vh] touch-none outline-2 outline-gray-300 outline-dashed" #drawingCanvas></canvas>
+  
+  <canvas class="drawing-canvas w-full h-screen touch-none outline-2 outline-gray-300 outline-dashed bg-[#F2F3F5]" #drawingCanvas>
+    
+  </canvas>
+
+  <div class="panel min-w-4/5 lg:min-w-1/7 shadow-xs h-fit gap-4 bg-white flex flex-wrap lg:flex-col items-center justify-center lg:items-start rounded-2xl lg:absolute top-20 left-6 p-3 lg:p-5">
+    <div class="ink-group lg:w-full">
+     <span class="uppercase hidden lg:flex font-medium text-sm text-[#8A8375]">Ink</span>
+
+     <div class="flex items-center pt-1 gap-4 w-full">
+       @for (s of swatches; track $index){
+          <button [style.--ring-color]="s == strokeColor() ? '#8b5cf6' : '#d9d0bf'" (click)="selectColor(s)" [style.background]="s" class="w-10 h-10 pick-color border-2 border-white rounded-full cursor-pointer"></button>   
+       }
+     </div>
+
+    </div>
+    
+    <div class="range-group lg:w-full flex items-center gap-1 lg:flex-col">
+      <div class="flex items-center justify-between lg:w-full">
+        <span class="uppercase font-medium text-sm text-[#8A8375]">Stroke</span>
+        <span class="hidden lg:flex">{{strokeWidth()}}px</span>
+      </div>
+      <input type="range" min="1" max="12"
+             [value]="strokeWidth()"
+             [style.--fill]="fillPercent()"
+             (input)="strokeWidth.set(+$any($event.target).value)">
+    </div>
+
+
+    <div class="range-group lg:w-full flex items-center gap-1 lg:flex-col">
+      <div class="flex items-center justify-between lg:w-full">
+        <span class="uppercase font-medium text-sm text-[#8A8375]">Angle</span>
+        <span class="hidden lg:flex">{{rotationAngle()}}</span>
+      </div>
+      <input type="range" min="-20" max="20"
+             [value]="rotationAngle()"
+             [style.--fill]="rotationPercent()"
+             (input)="rotationAngle.set(+$any($event.target).value)">
+    </div>
+    
+
+    <div class="flex items-center gap-3 lg:justify-between lg:w-full">
+      <button class="btn btn-lg btn-primary lg:w-full" (click)="undo()">Undo</button>
+      <button class="btn btn-lg btn-secondary lg:w-full" (click)="clear()">Clear</button>
+    </div>
+
+  </div>
   
 </section>

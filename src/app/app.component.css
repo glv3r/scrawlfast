@@ -1,3 +1,51 @@
-.drawing-canvas {
-  
+/* the input itself: just layout, no visuals */
+input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+  --fill: 0%; /* fallback, overridden from the template */
+}
+
+/* ---- track ---- */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-brand-purple) var(--fill),
+    #E8E1D3 var(--fill)
+  );
+}
+input[type="range"]::-moz-range-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-brand-purple) var(--fill),
+    #E8E1D3 var(--fill)
+  );
+}
+
+/* ---- thumb ---- */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: none;
+  margin-top: 0;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: none;
+}
+
+
+.pick-color {
+  box-shadow: 0 0 0 3px var(--ring-color, #d9d0bf);
 }
