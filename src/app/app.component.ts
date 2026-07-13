@@ -25,7 +25,8 @@ export class AppComponent {
   toastMessage: string = '';
   toastHeader: string = '';
   toastService = inject(ToastService)
-  
+  hasPencil = signal(false)
+  activePointerId = signal<number | null>(null)
   observer: ResizeObserver | null = null;
   zone = inject(NgZone)
   isDrawing = signal(false);
@@ -60,12 +61,21 @@ export class AppComponent {
   }
 
   constructor() {
+    // We moved restore from the life cycle to the constructor 
+    // just so that we get our actual saved values before the effect 
+    // runs (the effect was writing the values as defaults and restore 
+    // returned that in the ngAfterViewInit)
+    this.restoreStrokes()
+    
     effect(() => {
       // Explicitly call the deps at the top so they're not hidden
       // from the early return in the redrawAll method
       this.strokeWidth();
       this.strokeColor();
       this.rotationAngle();
+
+      this.savePayload()
+      
       this.redrawAll()
     });
   }
@@ -78,7 +88,17 @@ export class AppComponent {
     if (!canvas) return;
     
     console.log("Pointer down event: ", event.pointerType)
+    if (event.pointerType === 'touch' && this.hasPencil()) return;
     canvas.setPointerCapture(event.pointerId)
+
+    this.activePointerId.set(event.pointerId)
+
+    if (event.pointerType === 'pen' && !this.hasPencil()) {
+      this.hasPencil.set(true)
+      localStorage.setItem('hasPencil', '1')
+    }
+
+
 
     this.isDrawing.set(true)
 
@@ -95,6 +115,8 @@ export class AppComponent {
     
     if (!this.isDrawing() || !this.lastPoint || !canvas) return;
 
+    if (event.pointerId !== this.activePointerId()) return
+
     // Track where our pointer is now
     const current = this.getCanvasPoint(canvas, event)
     if (!current) return;
@@ -110,6 +132,7 @@ export class AppComponent {
   // pointerup 
   onPointerUp(event: PointerEvent) { 
     console.log("Pointer up event: ", event.pointerType)
+    if (event.pointerId !== this.activePointerId()) return
     this.isDrawing.set(false)
     this.lastPoint = null
 
@@ -118,14 +141,8 @@ export class AppComponent {
     }
 
     this.currentStroke = null
-    const payload = {
-      "strokes": this.strokes,
-      "angle": this.rotationAngle(),
-      "strokeWidth": this.strokeWidth(),
-      "ink": this.strokeColor()
-    }
-    
-    localStorage.setItem('stroke-payload', JSON.stringify(payload))
+    this.activePointerId.set(null)
+    this.savePayload()
   }
 
 
@@ -143,7 +160,6 @@ export class AppComponent {
     
 
   ngAfterViewInit(): void {
-    this.restoreStrokes()
     
     const canvas = this.drawCanvas()?.nativeElement
     if (!canvas) return;
@@ -199,13 +215,7 @@ export class AppComponent {
 
   undo() {
     this.strokes.pop()
-    const payload = {
-      "strokes": this.strokes,
-      "angle": this.rotationAngle(),
-      "strokeWidth": this.strokeWidth(),
-      "ink": this.strokeColor()
-    }
-    localStorage.setItem('stroke-payload', JSON.stringify(payload))
+    this.savePayload()
     this.redrawAll()
   }
 
@@ -213,6 +223,16 @@ export class AppComponent {
     this.strokes = []
     localStorage.removeItem('stroke-payload')
     this.redrawAll()
+  }
+
+  savePayload() {
+    const payload = {
+      strokes: this.strokes,
+      angle: this.rotationAngle(),
+      strokeWidth: this.strokeWidth(),
+      ink: this.strokeColor()
+    }
+    localStorage.setItem('stroke-payload', JSON.stringify(payload))
   }
 
   // Co-ordinate conversion for both event listeners
