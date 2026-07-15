@@ -80,12 +80,21 @@ export class AppComponent {
     });
   }
 
+  
+
   // --------- Event Listeners ------------
+
+  onPointerCancel(e: PointerEvent) {
+    console.log('CANCELLED:', e.pointerType, 'id:', e.pointerId)
+    this.onPointerUp(e)
+  }
   
   // pointerdown
   onPointerDown(event: PointerEvent) {
     const canvas = this.drawCanvas()?.nativeElement
     if (!canvas) return;
+
+
     
     console.log("Pointer down event: ", event.pointerType)
     if (event.pointerType === 'touch' && this.hasPencil()) return;
@@ -98,7 +107,7 @@ export class AppComponent {
       localStorage.setItem('hasPencil', '1')
     }
 
-
+    this.bakeRotation()
 
     this.isDrawing.set(true)
 
@@ -168,10 +177,13 @@ export class AppComponent {
     // (since nothing in the template depends on the canvas for updates). We're also setting
     // the listeners on the canvas only so that drawing happens only in the canvas, and nowhere else
     this.zone.runOutsideAngular(() => {
-        canvas.addEventListener('pointerdown', e => this.onPointerDown(e))
-        canvas.addEventListener('pointermove', e => this.onPointerMove(e))
-        canvas.addEventListener('pointerup', e => this.onPointerUp(e))
-        canvas.addEventListener('pointercancel', e => this.onPointerUp(e))
+      canvas.addEventListener('pointerdown', e => this.onPointerDown(e))
+      canvas.addEventListener('pointermove', e => this.onPointerMove(e))
+      canvas.addEventListener('pointerup', e => this.onPointerUp(e))
+      canvas.addEventListener('pointercancel', e => this.onPointerCancel(e))
+      canvas.addEventListener('touchstart', e => {
+          if (this.hasPencil()) e.preventDefault()
+      }, { passive: false })
     })
 
     this.ctx = canvas.getContext('2d')
@@ -299,6 +311,8 @@ export class AppComponent {
   // Restore strokes (if any) from localStorage
   restoreStrokes() {
     const s = localStorage.getItem('stroke-payload')
+    this.hasPencil.set(localStorage.getItem('hasPencil') === '1')
+
     if (!s) return;
     try {
       let sParsed = JSON.parse(s)
@@ -461,6 +475,24 @@ export class AppComponent {
     return new Promise<Blob | null>(resolve =>
         off.toBlob(resolve, 'image/png')
     );
+  }
+
+
+  bakeRotation() {
+    const angle = this.rotationAngle()
+
+    if (angle == 0) return;
+
+    let bbox = this.getBoundingBox(); if (!bbox) return;
+
+    let cx = (bbox.minX + bbox.maxX) / 2
+    let cy = (bbox.minY + bbox.maxY) / 2
+
+    this.strokes = this.strokes.map(s => 
+      s.map(p => this.rotatePoint(p.x, p.y, cx, cy, angle))
+    )
+
+    this.rotationAngle.set(0)
   }
 
 

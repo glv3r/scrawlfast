@@ -65,7 +65,10 @@
               "buildTarget": "signing-tool:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+              "allowedHosts": [".ngrok-free.app"]
+          }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n"
