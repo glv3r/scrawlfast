@@ -131,7 +131,19 @@ export class AppComponent {
     if (!current) return;
     
 
-    this.currentStroke?.push(current) // record what was just drawn
+    // this.currentStroke?.push(current) // record what was just drawn
+    let ev = event.getCoalescedEvents?.() ?? []
+
+    if (ev.length == 0) {
+      ev = [event]
+    }
+
+    ev.forEach((e) => {
+      let point = this.getCanvasPoint(canvas, e)
+      if (point) {
+        this.currentStroke?.push(point)
+      }
+    })
 
     this.redrawAll()
 
