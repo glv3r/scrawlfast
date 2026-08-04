@@ -50,15 +50,3 @@ Strokes are smoothed with `quadraticCurveTo` through the midpoint of each pair o
 
 The clipboard write is deliberately synchronous — `navigator.clipboard.write` is handed a pending blob promise rather than an awaited blob, because Safari only allows the write inside the original click gesture.
 
-## Running Locally
-
-```bash
-npm install
-npm start
-```
-
-Then open `http://localhost:4200`.
-
-## Future Development
-
-Planned work includes pressure-sensitive stroke width from `PointerEvent.pressure`, a redo stack, freeform rotation instead of a fixed range, SVG export alongside PNG, and custom ink colours beyond the three presets.
