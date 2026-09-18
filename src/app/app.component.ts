@@ -157,12 +157,12 @@ export class AppComponent {
 
     this.renderStroke(this.currentStroke, this.ctx)
 
-    this.currentStroke?.forEach((p) => {
-      this.ctx?.beginPath()
-      this.ctx?.arc(p.x, p.y, 2, 0, 2 * 3.14)
-      // this.ctx.fillStyle = "red"
-      this.ctx?.fill()
-    })
+    // this.currentStroke?.forEach((p) => {
+    //   this.ctx?.beginPath()
+    //   this.ctx?.arc(p.x, p.y, 2, 0, 2 * 3.14)
+    //   // this.ctx.fillStyle = "red"
+    //   this.ctx?.fill()
+    // })
   }
 
   // pointerup 
