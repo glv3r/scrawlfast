@@ -26,6 +26,7 @@ export class AppComponent {
   toastHeader: string = '';
   toastService = inject(ToastService)
   hasPencil = signal(false)
+  allowTouch = signal(false)
   activePointerId = signal<number | null>(null)
   observer: ResizeObserver | null = null;
   zone = inject(NgZone)
@@ -94,18 +95,25 @@ export class AppComponent {
     const canvas = this.drawCanvas()?.nativeElement
     if (!canvas) return;
 
-
     
     console.log("Pointer down event: ", event.pointerType)
-    if (event.pointerType === 'touch' && this.hasPencil()) return;
+    // if (event.pointerType === 'touch' && this.hasPencil()) return;
     canvas.setPointerCapture(event.pointerId)
 
     this.activePointerId.set(event.pointerId)
 
-    if (event.pointerType === 'pen' && !this.hasPencil()) {
-      this.hasPencil.set(true)
-      localStorage.setItem('hasPencil', '1')
+    if (event.pointerType === 'pen') {
+      if (!this.hasPencil()){
+        this.hasPencil.set(true)
+        localStorage.setItem('hasPencil', '1')
+      }
+
+      this.allowTouch.set(false)
     }
+
+    // Logic for when you're on an iPad and have a pencil but 
+    // you haven't allowed finger input. It should be rejected
+    if(event.pointerType === 'touch' && this.hasPencil() && !this.allowTouch()) return;
 
     this.bakeRotation()
 
@@ -148,6 +156,13 @@ export class AppComponent {
     this.redrawAll()
 
     this.renderStroke(this.currentStroke, this.ctx)
+
+    this.currentStroke?.forEach((p) => {
+      this.ctx?.beginPath()
+      this.ctx?.arc(p.x, p.y, 2, 0, 2 * 3.14)
+      // this.ctx.fillStyle = "red"
+      this.ctx?.fill()
+    })
   }
 
   // pointerup 

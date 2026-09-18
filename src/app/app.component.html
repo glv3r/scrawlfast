@@ -41,6 +41,33 @@
              (input)="strokeWidth.set(+$any($event.target).value)">
     </div>
 
+    @if (hasPencil()) {
+      <div class="range-group lg:w-full flex items-center gap-1">
+       <div class="flex items-center gap-2 lg:w-full">
+         <span class="ph ph-hand-pointing text-[#8A8375]"></span>
+         <span class="control-label uppercase font-medium text-xs text-[#8A8375]">Finger drawing</span>
+       </div>
+ 
+       <button
+         type="button"
+         role="switch"
+         [attr.aria-checked]="allowTouch()"
+         aria-label="Finger drawing"
+         (click)="allowTouch.set(!allowTouch())"
+         class="relative h-6 w-13 cursor-pointer rounded-full border-0 p-0
+                bg-[#ddd8cf] transition-colors duration-200
+                aria-checked:bg-[#7F77DD]
+                after:absolute after:left-0.75 after:top-0.75
+                after:h-4.5 after:w-4.5 after:rounded-full after:bg-white
+                after:content-[''] after:transition-transform after:duration-300
+                aria-checked:after:translate-x-4
+                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7F77DD]">
+       </button>
+      </div>
+    }
+
+    
+
 
     <div class="range-group lg:w-full flex items-center gap-1 lg:flex-col">
       <div class="flex items-center justify-between lg:w-full">
