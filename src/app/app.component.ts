@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, NgZone, inject, signal, viewChild, effect, computed } from '@angular/core';
+import { Component, ElementRef, NgZone, inject, signal, viewChild, effect, computed, HostListener } from '@angular/core';
 import { ToastService } from './services/toast.service';
 import { ToastComponent } from './components/toast/toast.component';
+import { DialogComponent } from './components/dialog/dialog.component';
 
 type Point = {
   x: number,
@@ -15,7 +16,7 @@ type Toast = {
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, ToastComponent],
+  imports: [CommonModule, ToastComponent, DialogComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -31,6 +32,10 @@ export class AppComponent {
   observer: ResizeObserver | null = null;
   zone = inject(NgZone)
   isDrawing = signal(false);
+  isConfirmDialogOpen = signal<boolean>(false)
+  hasDrawnThisSession = signal(false)
+
+
   drawCanvas = viewChild<ElementRef<HTMLCanvasElement>>('drawingCanvas');
   ctx: CanvasRenderingContext2D | null = null;
   dpr = window.devicePixelRatio // Get the dpr for the current device (ratio of screen pixels to CSS pixels)
@@ -46,6 +51,11 @@ export class AppComponent {
   rotationAngle = signal<number>(0)
 
   swatches = ["#1F1E1B", "#2743B8", "#8E2A22"]
+  showWelcome = computed(() => this.strokes.length === 0 && !this.hasDrawnThisSession())
+
+  isMac = navigator.userAgent.includes('Macintosh')
+  isKeyboardDevice = window.matchMedia('(hover: hover)').matches && window.matchMedia('(pointer: fine)').matches && (!(navigator.maxTouchPoints > 1) && this.isMac)
+  modKey = this.isMac ? '⌘' : 'Ctrl'
 
   fillPercent = computed(() => {
     const min = 1, max = 12;
@@ -59,6 +69,11 @@ export class AppComponent {
 
   selectColor(c: string) {
     this.strokeColor.set(c)
+  }
+
+  toggleConfirmDialog() {
+    if (this.strokes.length === 0) return;
+    this.isConfirmDialogOpen.update(v => !v);
   }
 
   constructor() {
@@ -92,8 +107,10 @@ export class AppComponent {
   
   // pointerdown
   onPointerDown(event: PointerEvent) {
+
     const canvas = this.drawCanvas()?.nativeElement
     if (!canvas) return;
+    
 
     
     console.log("Pointer down event: ", event.pointerType)
@@ -115,6 +132,10 @@ export class AppComponent {
     // you haven't allowed finger input. It should be rejected
     if(event.pointerType === 'touch' && this.hasPencil() && !this.allowTouch()) return;
 
+    if (this.strokes.length === 0 && !this.hasDrawnThisSession()){
+      this.hasDrawnThisSession.set(true)
+    }
+    
     this.bakeRotation()
 
     this.isDrawing.set(true)
@@ -179,6 +200,36 @@ export class AppComponent {
     this.currentStroke = null
     this.activePointerId.set(null)
     this.savePayload()
+  }
+
+
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent){
+    console.log("Keydown event: ", event.key)
+    const mod = event.ctrlKey || event.metaKey
+
+    if (!mod) return;
+
+    const target = event.target;
+
+    if ((target instanceof HTMLInputElement && target.type !== 'range') || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
+        console.log("Editable content. Don't apply.");
+        return;
+    }
+
+    // Don't take over Command /Ctrl C when text is selected
+    if (window.getSelection()?.toString()) return;
+
+    // Command/Ctrl Z for undo
+    if (event.key.toLowerCase() === 'z' && !event.shiftKey){
+      event.preventDefault()
+      this.undo()
+
+    // For copy
+    } else if (event.key.toLowerCase() === 'c' && !event.shiftKey) {
+      event.preventDefault()
+      this.copyPNG()
+    }
   }
 
 
@@ -259,6 +310,7 @@ export class AppComponent {
   }
 
   clear() {
+    this.toggleConfirmDialog()
     this.strokes = []
     localStorage.removeItem('stroke-payload')
     this.redrawAll()
