@@ -1,0 +1,12 @@
+@if (isOpen) {
+  <!-- Backdrop -->
+  <div 
+    (click)="closeDialog()"
+    class="fixed inset-0 bg-[#00000060] z-70">
+  </div>
+  
+  <!-- dialog -->
+  <div #dialog class="dialog-content fixed top-[50%] left-[50%] z-80 grid w-full max-w-[calc(100%-2rem)]! translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl p-6 shadow-lg md:max-w-lg! bg-white flex-col border border-gray-300 lg:items-center">
+   <ng-content></ng-content>
+  </div>
+}
